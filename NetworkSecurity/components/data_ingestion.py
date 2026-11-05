@@ -1,3 +1,5 @@
+import certifi
+
 from NetworkSecurity.exception.exception import NetworkSecurityException
 from NetworkSecurity.logging.logger import logging
 
@@ -12,7 +14,6 @@ import numpy as np
 import pymongo
 from typing import List
 from sklearn.model_selection import train_test_split
-
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -41,7 +42,12 @@ class DataIngestion:
         try:
             database_name=self.data_ingestion_config.database_name
             collection_name=self.data_ingestion_config.collection_name
-            self.mongo_client = pymongo.MongoClient(MONGO_DB_URL)
+            self.mongo_client = pymongo.MongoClient(
+                MONGO_DB_URL,
+                tls=True,
+                tlsCAFile=certifi.where(),
+                serverSelectionTimeoutMS=30000
+            )
             collection = self.mongo_client[database_name][collection_name]
             df = pd.DataFrame(list(collection.find()))
             if "_id" in df.columns:

@@ -5,3 +5,9 @@ logs
 NetworkSecurity/exception/__pycache__
 NetworkSecurity/__pycache__
 NetworkSecurity/logging/__pycache__
+NetworkSecurity/utils/main_utils/__pycache__
+NetworkSecurity/components/__pycache__
+NetworkSecurity/entity/__pycache__
+NetworkSecurity/utils/__pycache__
+NetworkSecurity/components/__pycache__
+
