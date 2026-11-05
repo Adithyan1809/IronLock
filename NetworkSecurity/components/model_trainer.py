@@ -2,7 +2,6 @@
 import os
 import sys
 
-
 import mlflow
 import mlflow.sklearn
 import dagshub
@@ -40,12 +39,48 @@ from sklearn.ensemble import (
 )
 
 
-# Initialize DagsHub and MLflow
-dagshub.init(
-    repo_owner='Adithyan1809',
-    repo_name='IronLock',
-    mlflow=True
-)
+# DagsHub initialization state
+DAGSHUB_INITIALIZED = False
+
+
+def initialize_dagshub():
+    """
+    Initialize DagsHub only when model training starts.
+    Avoid interactive OAuth during FastAPI application startup.
+    """
+
+    global DAGSHUB_INITIALIZED
+
+    if DAGSHUB_INITIALIZED:
+        return True
+
+    try:
+        dagshub_token = os.getenv("DAGSHUB_TOKEN")
+
+        if not dagshub_token:
+            logging.warning(
+                "DAGSHUB_TOKEN not configured. "
+                "MLflow tracking will be skipped."
+            )
+            return False
+
+        dagshub.auth.add_app_token(dagshub_token)
+
+        dagshub.init(
+            repo_owner="Adithyan1809",
+            repo_name="IronLock",
+            mlflow=True
+        )
+
+        DAGSHUB_INITIALIZED = True
+
+        logging.info("DagsHub initialized successfully.")
+
+        return True
+
+    except Exception as e:
+        logging.error(f"DagsHub initialization failed: {str(e)}")
+        return False
 
 
 class ModelTrainer:
@@ -70,48 +105,62 @@ class ModelTrainer:
         classification_test_metric
     ):
 
-        with mlflow.start_run():
-
-            # Training Metrics
-            mlflow.log_metric(
-                "train_f1_score",
-                classification_train_metric.f1_score
+        # Initialize DagsHub only when tracking is required
+        if not initialize_dagshub():
+            logging.warning(
+                "Skipping MLflow tracking because DagsHub "
+                "authentication is unavailable."
             )
+            return
 
-            mlflow.log_metric(
-                "train_precision",
-                classification_train_metric.precision_score
-            )
+        try:
+            with mlflow.start_run():
 
-            mlflow.log_metric(
-                "train_recall",
-                classification_train_metric.recall_score
-            )
+                # Training Metrics
+                mlflow.log_metric(
+                    "train_f1_score",
+                    classification_train_metric.f1_score
+                )
 
-            # Testing Metrics
-            mlflow.log_metric(
-                "test_f1_score",
-                classification_test_metric.f1_score
-            )
+                mlflow.log_metric(
+                    "train_precision",
+                    classification_train_metric.precision_score
+                )
 
-            mlflow.log_metric(
-                "test_precision",
-                classification_test_metric.precision_score
-            )
+                mlflow.log_metric(
+                    "train_recall",
+                    classification_train_metric.recall_score
+                )
 
-            mlflow.log_metric(
-                "test_recall",
-                classification_test_metric.recall_score
-            )
+                # Testing Metrics
+                mlflow.log_metric(
+                    "test_f1_score",
+                    classification_test_metric.f1_score
+                )
 
-            # Log Model
-            mlflow.sklearn.log_model(
-                sk_model=best_model,
-                name="model",
-                skops_trusted_types=[
-                    "sklearn.tree._tree.Tree"
-                ]
-            )
+                mlflow.log_metric(
+                    "test_precision",
+                    classification_test_metric.precision_score
+                )
+
+                mlflow.log_metric(
+                    "test_recall",
+                    classification_test_metric.recall_score
+                )
+
+                # Log Model
+                mlflow.sklearn.log_model(
+                    sk_model=best_model,
+                    name="model",
+                    skops_trusted_types=[
+                        "sklearn.tree._tree.Tree"
+                    ]
+                )
+
+            logging.info("MLflow tracking completed successfully.")
+
+        except Exception as e:
+            logging.error(f"MLflow tracking failed: {str(e)}")
 
     # Model Training
     def train_model(self, X_train, y_train, X_test, y_test):
@@ -159,7 +208,11 @@ class ModelTrainer:
         )
 
         # Select Best Model
-        best_model_name = max(model_report, key=lambda name: model_report[name])        
+        best_model_name = max(
+            model_report,
+            key=lambda name: model_report[name]
+        )
+
         best_model_score = model_report[best_model_name]
         best_model = models[best_model_name]
 
