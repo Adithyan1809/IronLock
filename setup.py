@@ -21,10 +21,4 @@ def get_requirements() -> List[str]:
     return requirement_lst
 
 setup(
-    name="IronLoack",
-    version="0.1",
-    author="Adithyan",
-    author_email="adithyan18092005@gmail.com",
-    packages=find_packages(),
-    install_requires=get_requirements()
 )
