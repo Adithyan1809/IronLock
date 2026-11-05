@@ -1,13 +1,18 @@
 import sys
+from types import ModuleType
 from NetworkSecurity.logging import logger
 
 class NetworkSecurityException(Exception):
-    def __init__(self,error_message,error_details:sys):
+    def __init__(self, error_message: Exception, error_details: ModuleType):
         self.error_message = error_message
         _,_,exc_tb = error_details.exc_info()
-        
-        self.lineno=exc_tb.tb_lineno
-        self.file_name=exc_tb.tb_frame.f_code.co_filename 
+
+        if exc_tb is None:
+            self.lineno = -1
+            self.file_name = "<unknown>"
+        else:
+            self.lineno = exc_tb.tb_lineno
+            self.file_name = exc_tb.tb_frame.f_code.co_filename 
     
     def __str__(self):
         return "Error occured in python script name [{0}] line number [{1}] error message [{2}]".format(
