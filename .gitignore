@@ -1,3 +1,7 @@
 venv
 .env
 logs
+.gitignore
+NetworkSecurity/exception/__pycache__
+NetworkSecurity/__pycache__
+NetworkSecurity/logging/__pycache__
